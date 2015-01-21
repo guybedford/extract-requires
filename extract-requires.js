@@ -1,3 +1,4 @@
+var identifierCharRegEx = /[$_a-zA-Z\xA0-\uFFFF]/;
 module.exports = function(src, requireName) {
   var requires = [];
 
@@ -35,7 +36,7 @@ module.exports = function(src, requireName) {
     seekCloseBracket = false;
   }
 
-  for (var i = src.substr(0, 1) == '\uFEFF' ? 1 : 0, l = src.length; i < l; i++) {
+  for (var i = src.charAt(0) == '\uFEFF' ? 1 : 0, l = src.length; i < l; i++) {
     lastChar = curChar;
     curChar = nextChar;
     nextChar = src.charAt(i + 1);
@@ -76,9 +77,25 @@ module.exports = function(src, requireName) {
       doubleQuote = curChar === '"';
       singleQuote = curChar === "'";
 
+      if (curChar === '/') {
+        if (nextChar === '*') {
+          blockComment = true;
+        }
+        else if (nextChar === '/') {
+          lineComment = true;
+          if (checkingRequire)
+            notRequire();
+        }
+        else {
+          regex = true;
+          if (checkingRequire)
+            notRequire();
+        }
+      }
+
       if (checkingRequire) {
         if (readingCall) {
-          if (curChar !== requireName.substr(callRequireMatchLength++, 1))
+          if (curChar !== requireName.charAt(callRequireMatchLength++))
             notRequire();
 
           if (callRequireMatchLength == requireName.length) {
@@ -101,33 +118,16 @@ module.exports = function(src, requireName) {
             requires.push(requireString);
             seekCloseBracket = false;
           }
-          else if (curChar !== ' ')
+          else if (!blockComment && curChar !== ' ' && curChar !== '\n' && curChar !== '\r')
             notRequire();
         }
       }
 
       // new check
-      if (!checkingRequire && curChar === requireName.substr(0, 1) && !lastChar.match(/$_a-zA-Z\xA0-\uFFFF/)) {
+      if (!checkingRequire && curChar === requireName.charAt(0) && (!lastChar || !lastChar.match(identifierCharRegEx))) {
         checkingRequire = true;
         readingCall = true;
         callRequireMatchLength = 1;
-      }
-
-      if (curChar !== '/')
-        continue;
-      
-      if (nextChar === '*') {
-        blockComment = true;
-      }
-      else if (nextChar === '/') {
-        lineComment = true;
-        if (checkingRequire)
-          notRequire();
-      }
-      else {
-        regex = true;
-        if (checkingRequire)
-          notRequire();
       }
     }
   }
