@@ -23,6 +23,7 @@ checkSource(['d1', 'd2require("d3")'], "exports.d1 = require(\n  'd1'\n);\n\nexp
 checkSource([], 'exports.d4 = "text require(\'still not a dep\') text";');
 checkSource([], "exports.d5 = 'text \'quote\' require(\"yet still not a dep\")'");
 checkSource([], '/* require(  "dep"  )*/');
-checkSource(['dep'], ' require(  "dep" /*  */ )');
+checkSource(['dep'], 'require("dep")');
+checkSource(['./map-test-dep'], 'exports.maptest = require(\'./map-test-dep\').dep;\n');
 
 console.log('All tests passed');
